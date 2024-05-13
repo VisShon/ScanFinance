@@ -16,6 +16,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.project.scanfinance.R
 import android.graphics.Bitmap
+import android.icu.text.SimpleDateFormat
+import android.net.Uri
+import android.os.Environment
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.material3.ButtonDefaults
@@ -26,11 +29,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
+import java.io.File
+import java.util.Date
+import java.util.Locale
 
 @Composable
-@SuppressLint("QueryPermissionsNeeded")
+@SuppressLint("QueryPermissionsNeeded", "UnrememberedMutableState")
 fun ScannerActivity(){
     val context = LocalContext.current
+    var imageUri: Uri? by mutableStateOf(null)
     var hasCameraPermission by remember { mutableStateOf(false) }
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
@@ -59,6 +67,16 @@ fun ScannerActivity(){
                 Toast.LENGTH_SHORT
             ).show()
         }
+    }
+
+    fun openCamera() {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+        val photoFile: File = File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
+
+        imageUri = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", photoFile)
+
+        takePicture.launch(imageUri)
     }
 
     LaunchedEffect(key1 = true) {
@@ -115,3 +133,4 @@ fun ScannerActivity(){
 fun onImageTaken(image: Bitmap) {
     println("Image Captured!")
 }
+

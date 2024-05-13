@@ -6,3 +6,5 @@ data class Expense(
     val paymentFrom: String,
     val amountPaid: Double
 )
+
+
