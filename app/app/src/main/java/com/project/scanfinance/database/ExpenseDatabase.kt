@@ -5,9 +5,9 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Orientation::class], version = 1)
+@Database(entities = [Expense::class], version = 1)
 abstract class ExpenseDatabase : RoomDatabase() {
-    abstract fun orientationDao(): OrientationDao
+    abstract fun expenseDao(): ExpenseDAO
 
     companion object {
         @Volatile

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -56,11 +57,14 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    implementation(libs.androidx.room)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation("com.github.jaikeerthick:Composable-Graphs:v1.2.3")
 
+
+    implementation ("androidx.room:room-runtime:2.4.2")
+    kapt ("androidx.room:room-compiler:2.4.2")
+    implementation ("androidx.room:room-ktx:2.4.2")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

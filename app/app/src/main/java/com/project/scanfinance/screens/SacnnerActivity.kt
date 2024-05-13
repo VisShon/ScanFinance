@@ -69,15 +69,15 @@ fun ScannerActivity(){
         }
     }
 
-    fun openCamera() {
-        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
-        val photoFile: File = File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
-
-        imageUri = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", photoFile)
-
-        takePicture.launch(imageUri)
-    }
+//    fun openCamera() {
+//        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+//        val storageDir: File = getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
+//        val photoFile: File = File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
+//
+//        imageUri = FileProvider.getUriForFile(this, "${applicationContext.packageName}.provider", photoFile)
+//
+//        takePicture.launch(imageUri)
+//    }
 
     LaunchedEffect(key1 = true) {
         hasCameraPermission = context.checkSelfPermission(android.Manifest.permission.CAMERA) ==

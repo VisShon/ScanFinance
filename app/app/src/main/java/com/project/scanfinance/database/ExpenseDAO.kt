@@ -6,13 +6,16 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 
+
+
 @Dao
 interface ExpenseDAO {
     @Insert
     suspend fun insertExpense(expense: Expense)
 
-    @Query("SELECT * FROM expenses")
+    @Query("SELECT * FROM Expense")
     suspend fun getAllExpenses(): List<Expense>
+
 
     @Delete
     suspend fun deleteExpense(expense: Expense)
@@ -21,4 +24,5 @@ interface ExpenseDAO {
     suspend fun updateExpense(expense: Expense)
 
 }
+
 
