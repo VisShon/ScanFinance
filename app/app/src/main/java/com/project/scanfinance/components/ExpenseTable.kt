@@ -9,15 +9,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.project.scanfinance.database.Expense
+import com.project.scanfinance.database.ExpenseDAO
+import kotlinx.coroutines.launch
 
 
 @Composable
-fun ExpenseTable(expenses: List<Expense>) {
+fun ExpenseTable(dao: ExpenseDAO) {
     var showDialog by remember { mutableStateOf(false) }
     var newDate by remember { mutableStateOf("") }
     var newPaymentTo by remember { mutableStateOf("") }
     var newPaymentFrom by remember { mutableStateOf("") }
     var newAmountPaid by remember { mutableStateOf("") }
+    val coroutineScope = rememberCoroutineScope()
+    val expenses = remember { mutableStateOf<List<Expense>>(emptyList()) }
+
+    LaunchedEffect(expenses) {
+        expenses.value = dao.getAllExpenses()
+    }
 
     if (showDialog) {
         AlertDialog(
@@ -54,6 +62,16 @@ fun ExpenseTable(expenses: List<Expense>) {
             confirmButton = {
                 Button(
                     onClick = {
+                        coroutineScope.launch {
+                            val newExpense = Expense(
+                                date = newDate,
+                                paymentTo = newPaymentTo,
+                                paymentFrom = newPaymentFrom,
+                                amountPaid = newAmountPaid.toDouble()
+                            )
+                            dao.insertExpense(newExpense)
+                            expenses.value = dao.getAllExpenses()
+                        }
                         showDialog = false
                     }
                 ) {
@@ -80,8 +98,8 @@ fun ExpenseTable(expenses: List<Expense>) {
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn {
-            items(expenses.size) { index ->
-                ExpenseRow(expense = expenses[index])
+            items(expenses.value.size) { index ->
+                ExpenseRow(expense = expenses.value[index])
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
@@ -94,6 +112,7 @@ fun ExpenseTable(expenses: List<Expense>) {
 
 @Composable
 fun ExpenseRow(expense: Expense) {
+    val coroutineScope = rememberCoroutineScope()
     Card(
         modifier = Modifier
             .fillMaxWidth()

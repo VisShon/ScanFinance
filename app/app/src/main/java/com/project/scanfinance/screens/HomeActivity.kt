@@ -10,9 +10,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.project.scanfinance.components.ExpenseTable
 import com.project.scanfinance.database.Expense
+import com.project.scanfinance.database.ExpenseDAO
 
 @Composable
-fun HomeActivity(navController: NavController, expenses:List<Expense>) {
+fun HomeActivity(navController: NavController, expenseDAO: ExpenseDAO) {
 
     Column(
         Modifier.padding(
@@ -26,7 +27,7 @@ fun HomeActivity(navController: NavController, expenses:List<Expense>) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        ExpenseTable(expenses)
+        ExpenseTable(expenseDAO)
     }
 }
 

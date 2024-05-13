@@ -1,5 +1,6 @@
+import re
 import torch
-from flask import Flask, request, jsonify
+from flask import Flask, json, request, jsonify
 from paddleocr import PaddleOCR, draw_ocr
 import numpy as np
 from PIL import Image
@@ -94,6 +95,7 @@ def upload_file():
 
 	### Output:
 	"""
+	
 
 
 	with torch.inference_mode():
@@ -101,8 +103,18 @@ def upload_file():
 		outputs = model.generate(**inputs, max_new_tokens=1024)
 		result_text = tokenizer.batch_decode(outputs)[0]
 		print(result_text)
-		return result_text
-	
+		pattern = r"### Output:\s+({.*?})\s+### Note:"
+		match = re.search(pattern, text, re.DOTALL)
+		if match:
+			json_data = match.group(1)
+			json_data = json_data.replace("\t", "")
+			try:
+				parsed_json = json.loads(json_data)
+				return parsed_json
+			except json.JSONDecodeError as e:
+				print("Error decoding JSON:", e)
+				return result_text
+
 
 if __name__ == '__main__':
 	app.run(debug=True)

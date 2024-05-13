@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("com.google.devtools.ksp") version "1.9.0-1.0.13"
+    id("kotlin-kapt")
+
 }
 
 android {
@@ -60,8 +62,7 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation("com.github.jaikeerthick:Composable-Graphs:v1.2.3")
-
-
+    implementation("com.squareup.okhttp3:okhttp:4.9.1")
     implementation ("androidx.room:room-runtime:2.4.2")
     ksp("androidx.room:room-compiler:2.4.2")
     implementation ("androidx.room:room-ktx:2.4.2")

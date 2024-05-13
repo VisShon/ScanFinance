@@ -14,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun BudgetPredictor() {
-    val nextMonthPrediction = "Estimated Budget for Next Month: $500"
+fun BudgetPredictor(estimatedBudget:Double) {
+    val nextMonthPrediction = "Estimated Budget for Next Month: ${estimatedBudget}"
 
     Card(
         modifier = Modifier
