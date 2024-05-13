@@ -5,6 +5,7 @@ import android.Manifest
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
@@ -26,119 +27,73 @@ import com.project.scanfinance.R
 import com.project.scanfinance.database.Expense
 import com.project.scanfinance.database.ExpenseDAO
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
 import org.json.JSONObject
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
 import java.io.IOException
-import java.nio.charset.StandardCharsets
 import java.sql.DriverManager.println
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 fun uploadImageAndSaveExpense(context: Context, imageUri: Uri, dao: ExpenseDAO,coroutineScope: CoroutineScope) {
-    val imageFile = File(imageUri.path!!)
-    val requestBody = imageFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+    val client = getCustomOkHttpClient()
+    val contentResolver = context.contentResolver
+    val inputStream = try {
+        contentResolver.openInputStream(imageUri)
+    } catch (e: FileNotFoundException) {
+        Log.e("W", "File not found: $imageUri", e)
+        return
+    }
+
+    val tempFile = createTemporaryFile(context)
+    inputStream?.use { input ->
+        FileOutputStream(tempFile).use { fileOut ->
+            input.copyTo(fileOut)
+        }
+    }
+
+    val requestBody = tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
     val body = MultipartBody.Builder()
         .setType(MultipartBody.FORM)
-        .addFormDataPart("file", imageFile.name, requestBody)
+        .addFormDataPart("file", tempFile.name, requestBody)
         .build()
 
     val request = Request.Builder()
-        .url("http://localhost:5000/upload")
+        .url("http://192.168.244.125:5000/upload")
         .post(body)
         .build()
 
-    coroutineScope.launch{
-        parseExpense(context,dao)
-    }
 
-    OkHttpClient().newCall(request).enqueue(object : Callback {
-        override fun onFailure(call: Call, e: IOException) {
-            Toast.makeText(context, "Error uploading image: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-
-        override fun onResponse(call: Call, response: Response) {
-            response.body?.let { responseBody ->
-                val responseData = responseBody.string()
-                println("Response: $responseData" + "Potty")
-                coroutineScope.launch{
-                    parseExpense(context,dao)
+    Log.d("W","Bulilding Response" )
+    coroutineScope.launch(Dispatchers.IO) {
+        try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw IOException("Unexpected code $response")
+                response.body?.let { responseBody ->
+                    val responseContent = responseBody.string()
+                    launch(Dispatchers.Main) {
+                        parseExpense(responseContent, dao)
+                    }
                 }
-                Toast.makeText(context, "Expense saved successfully", Toast.LENGTH_SHORT).show()
             }
+        } catch (e: Exception) {
+            Log.e("UploadImage", "Error uploading image: ${e.message}")
         }
-    })
+    }
 }
 
-suspend fun parseExpense(context: Context,dao: ExpenseDAO) {
-
-    val jsonString = """
-    {
-        "receipt": {
-            "store": "The Lone Pine",
-            "address": "43 Manchester Road",
-            "city": "Brisbane",
-            "country": "Australia",
-            "phone": "617-3236-6207",
-            "invoice": "Invoice 08000008",
-            "date": "09/04/08",
-            "table": "Table",
-            "items": [
-                {
-                    "name": "Carlsberg Bottle",
-                    "price": 16.00,
-                    "quantity": 2
-                },
-                {
-                    "name": "Heineken Draft Standard.",
-                    "price": 15.20,
-                    "quantity": 1
-                },
-                {
-                    "name": "Carlsberg Bucket (5 bottles).",
-                    "price": 80.00,
-                    "quantity": 1
-                },
-                {
-                    "name": "Grilled Chicken Breast.",
-                    "price": 74.00,
-                    "quantity": 1
-                },
-                {
-                    "name": "Sirloin Steak",
-                    "price": 96.00,
-                    "quantity": 1
-                },
-                {
-                    "name": "Coke",
-                    "price": 3.50,
-                    "quantity": 1
-                },
-                {
-                    "name": "Ice Cream",
-                    "price": 18.00,
-                    "quantity": 5
-                }
-            ],
-            "subtotal": 327.30,
-            "tax": 16.36,
-            "service_charge": 32.73,
-            "total": 400.00
-        },
-        "customer": {
-            "name": "John",
-            "phone": "617-3236-6207"
-        }
-    }
-"""
-
+suspend fun parseExpense(data: String, dao: ExpenseDAO) {
+    Log.d("W",data)
     val current = LocalDate.now().toString()
-//    val jsonData = file.readText(StandardCharsets.UTF_8)
-    val jsonObject = JSONObject(jsonString)
+    val jsonObject = JSONObject(data)
     val receipt = jsonObject.getJSONObject("receipt")
 
     val storeName = receipt.getString("store")
@@ -181,12 +136,12 @@ fun ScannerActivity(dao: ExpenseDAO) {
     val startCamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
             Toast.makeText(context, "Image saved to: $imageUri", Toast.LENGTH_LONG).show()
-            coroutineScope.launch{
-                parseExpense(context,dao)
-            }
-//            imageUri?.let { uri ->
+//            coroutineScope.launch{
 //                uploadImageAndSaveExpense(context, uri, dao, coroutineScope)
 //            }
+            imageUri?.let { uri ->
+                uploadImageAndSaveExpense(context, uri, dao, coroutineScope)
+            }
         } else {
             Toast.makeText(context, "Failed to take image", Toast.LENGTH_SHORT).show()
         }
@@ -199,6 +154,9 @@ fun ScannerActivity(dao: ExpenseDAO) {
 
         if (!hasCameraPermission) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }else{
+            imageUri = createImageUri(context)
+            println("Initial Check: Image URI set to $imageUri")
         }
     }
 
@@ -218,8 +176,11 @@ fun ScannerActivity(dao: ExpenseDAO) {
             Button(
                 onClick = {
                     if (hasCameraPermission) {
-                        imageUri = createImageFile(context)?.let { FileProvider.getUriForFile(context, "${context.packageName}.provider", it) }
-                        openCamera(startCamera, context)
+                        imageUri = createImageUri(context)  // Ensure URI is refreshed/recreated before use
+                        println("Button Pressed: Image URI refreshed to $imageUri")
+                        imageUri?.let { uri ->
+                            startCamera.launch(uri)
+                        }
                     } else {
                         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                     }
@@ -239,12 +200,33 @@ fun ScannerActivity(dao: ExpenseDAO) {
     }
 }
 
-// Function to handle opening the camera
 fun openCamera(startCamera: ActivityResultLauncher<Uri>, context: Context) {
     val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
     val storageDir: File = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)!!
     val photoFile: File = File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
-    val imageUri: Uri = FileProvider.getUriForFile(context, "${context.applicationContext.packageName}.provider", photoFile)
+    val imageUri: Uri? = createImageUri(context)
 
-    startCamera.launch(imageUri)
+    if (imageUri != null) {
+        startCamera.launch(imageUri)
+    }
+}
+
+fun createImageUri(context: Context): Uri? {
+    val photoFile: File? = createImageFile(context)
+    return photoFile?.let {
+        FileProvider.getUriForFile(context, "${context.packageName}.provider", it)
+    }
+}
+
+fun createTemporaryFile(context: Context): File {
+    val storageDir: File? = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    return File.createTempFile("JPEG_temp_", ".jpg", storageDir)
+}
+
+fun getCustomOkHttpClient(): OkHttpClient {
+    return OkHttpClient.Builder()
+        .connectTimeout(5, TimeUnit.MINUTES)
+        .readTimeout(5, TimeUnit.MINUTES)
+        .writeTimeout(5, TimeUnit.MINUTES)
+        .build()
 }

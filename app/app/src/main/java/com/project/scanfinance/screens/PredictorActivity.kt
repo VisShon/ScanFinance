@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import com.jaikeerthick.composable_graphs.composables.bar.style.BarGraphColors
 import com.jaikeerthick.composable_graphs.composables.bar.style.BarGraphFillType
 import com.jaikeerthick.composable_graphs.composables.bar.style.BarGraphStyle
-import com.project.scanfinance.components.BudgetInput
 import com.project.scanfinance.components.BudgetPredictor
 import com.project.scanfinance.database.Expense
 import com.project.scanfinance.database.ExpenseDAO
@@ -65,8 +64,6 @@ fun PredictorActivity (dao: ExpenseDAO) {
             style = MaterialTheme.typography.headlineLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-
-        BudgetInput()
 
         if (graphData.isNotEmpty()) {
             BarGraph(
