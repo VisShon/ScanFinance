@@ -54,7 +54,6 @@ fun ExpenseTable(expenses: List<Expense>) {
             confirmButton = {
                 Button(
                     onClick = {
-                        // Handle saving the data here
                         showDialog = false
                     }
                 ) {
